@@ -60,16 +60,16 @@ export default function Layout({ children }) {
           </button>
         </div>
         {/* Wallet bar mobile */}
-        <div className="flex justify-around px-4 py-2 bg-gray-50 dark:bg-gray-750 border-t border-gray-100 dark:border-gray-700 text-xs">
+        <div className="flex justify-around px-4 py-2 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 text-xs">
           <div className="flex items-center gap-1">
             <DollarSign size={14} className="text-yellow-400" />
             <span className="text-gray-500 dark:text-gray-400">สด:</span>
-            <span className="font-semibold">{formatCurrency(wallets.cashWallet)}</span>
+            <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(wallets.cashWallet)}</span>
           </div>
           <div className="flex items-center gap-1">
             <CreditCard size={14} className="text-green-400" />
             <span className="text-gray-500 dark:text-gray-400">เครดิต:</span>
-            <span className="font-semibold">{formatCurrency(wallets.grabCredit)}</span>
+            <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(wallets.grabCredit)}</span>
           </div>
         </div>
       </header>
@@ -147,13 +147,13 @@ export default function Layout({ children }) {
             <div className="flex items-center gap-1">
               <DollarSign size={16} className="text-yellow-400" />
               <span className="text-gray-500 dark:text-gray-400">เงินสด:</span>
-              <span className="font-bold">{formatCurrency(wallets.cashWallet)}</span>
+              <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(wallets.cashWallet)}</span>
             </div>
             <div className="w-px h-4 bg-gray-300 dark:bg-gray-600" />
             <div className="flex items-center gap-1">
               <CreditCard size={16} className="text-green-400" />
               <span className="text-gray-500 dark:text-gray-400">เครดิต Grab:</span>
-              <span className="font-bold">{formatCurrency(wallets.grabCredit)}</span>
+              <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(wallets.grabCredit)}</span>
             </div>
           </div>
         </div>
