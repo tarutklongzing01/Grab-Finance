@@ -7,7 +7,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../config/firebase";
 
 const AuthContext = createContext(null);
@@ -18,7 +18,18 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  async function checkAdmin(uid) {
+    try {
+      const snap = await getDoc(doc(db, "users", uid));
+      if (snap.exists()) {
+        return snap.data().profile?.isAdmin === true;
+      }
+    } catch (e) {}
+    return false;
+  }
 
   async function register(email, password, displayName) {
     const result = await createUserWithEmailAndPassword(auth, email, password);
@@ -67,12 +78,19 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
+    setIsAdmin(false);
     return signOut(auth);
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      if (user) {
+        const admin = await checkAdmin(user.uid);
+        setIsAdmin(admin);
+      } else {
+        setIsAdmin(false);
+      }
       setLoading(false);
     });
     return unsubscribe;
@@ -80,6 +98,7 @@ export function AuthProvider({ children }) {
 
   const value = {
     currentUser,
+    isAdmin,
     register,
     login,
     loginWithGoogle,

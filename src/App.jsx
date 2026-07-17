@@ -10,6 +10,7 @@ import WalletPage from "./pages/WalletPage";
 import ReportsPage from "./pages/ReportsPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import AdminPage from "./pages/AdminPage";
 
 function ProtectedRoute({ children }) {
   const { currentUser, loading } = useAuth();
@@ -26,6 +27,20 @@ function ProtectedRoute({ children }) {
   }
 
   return currentUser ? children : <Navigate to="/login" />;
+}
+
+function AdminRoute({ children }) {
+  const { currentUser, isAdmin, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="w-12 h-12 border-4 border-grab-green border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return currentUser && isAdmin ? children : <Navigate to="/" />;
 }
 
 function AppRoutes() {
@@ -91,6 +106,16 @@ function AppRoutes() {
               </Layout>
             </WalletProvider>
           </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <Layout>
+              <AdminPage />
+            </Layout>
+          </AdminRoute>
         }
       />
     </Routes>

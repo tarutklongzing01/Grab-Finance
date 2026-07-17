@@ -17,6 +17,7 @@ import {
   X,
   DollarSign,
   CreditCard,
+  Shield,
 } from "lucide-react";
 
 const navItems = [
@@ -27,9 +28,13 @@ const navItems = [
   { path: "/reports", label: "รายงาน", icon: FileBarChart },
 ];
 
+const adminItems = [
+  { path: "/admin", label: "Admin", icon: Shield },
+];
+
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { currentUser, logout } = useAuth();
+  const { currentUser, isAdmin, logout } = useAuth();
   const { dark, toggle } = useTheme();
   const { wallets } = useWallet();
   const navigate = useNavigate();
@@ -119,6 +124,26 @@ export default function Layout({ children }) {
                 </Link>
               );
             })}
+            {isAdmin &&
+              adminItems.map((item) => {
+                const Icon = item.icon;
+                const active = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setSidebarOpen(false)}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      active
+                        ? "bg-red-500 text-white"
+                        : "text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    }`}
+                  >
+                    <Icon size={18} />
+                    {item.label}
+                  </Link>
+                );
+              })}
           </nav>
 
           <div className="p-3 border-t border-gray-200 dark:border-gray-700 space-y-1">
