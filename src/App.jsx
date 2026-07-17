@@ -112,9 +112,11 @@ function AppRoutes() {
         path="/admin"
         element={
           <AdminRoute>
-            <Layout>
-              <AdminPage />
-            </Layout>
+            <WalletProvider>
+              <Layout>
+                <AdminPage />
+              </Layout>
+            </WalletProvider>
           </AdminRoute>
         }
       />
