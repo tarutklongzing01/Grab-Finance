@@ -141,7 +141,7 @@ export default function Layout({ children }) {
       </aside>
 
       {/* Main Content */}
-      <main className="lg:ml-64 pt-14 lg:pt-0 min-h-screen">
+      <main className="lg:ml-64 pt-[84px] lg:pt-0 min-h-screen">
         <div className="hidden lg:flex items-center justify-end gap-4 px-6 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">

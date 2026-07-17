@@ -124,13 +124,13 @@ export default function Dashboard() {
   }, [expenseBreakdown]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+    <div className="space-y-4 sm:space-y-6">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
         Dashboard
       </h1>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <SummaryCard
           label="รายได้วันนี้"
           value={todayIncome}
@@ -158,7 +158,7 @@ export default function Dashboard() {
       </div>
 
       {/* Wallets */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <WalletCard
           label="เงินสด"
           value={wallets.cashWallet}
@@ -166,13 +166,13 @@ export default function Dashboard() {
           color="yellow"
         />
         <WalletCard
-          label="เครดิต Grab"
+          label="เครดิต"
           value={wallets.grabCredit}
           icon={<CreditCard size={18} />}
           color="green"
         />
         <WalletCard
-          label="บัญชีธนาคาร"
+          label="ธนาคาร"
           value={wallets.bankBalance}
           icon={<Wallet size={18} />}
           color="blue"
@@ -222,14 +222,14 @@ function SummaryCard({ label, value, icon, color }) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-sm">
       <div
-        className={`w-10 h-10 rounded-xl flex items-center justify-center ${colorMap[color]}`}
+        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center ${colorMap[color]}`}
       >
         {icon}
       </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{label}</p>
-      <p className="text-lg font-bold text-gray-900 dark:text-white">
+      <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1.5 sm:mt-2 truncate">{label}</p>
+      <p className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white truncate">
         {formatCurrency(value)}
       </p>
     </div>
@@ -245,13 +245,13 @@ function WalletCard({ label, value, icon, color }) {
 
   return (
     <div
-      className={`bg-gradient-to-br ${colorMap[color]} rounded-2xl p-4 text-white shadow-sm`}
+      className={`bg-gradient-to-br ${colorMap[color]} rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white shadow-sm overflow-hidden`}
     >
-      <div className="flex items-center gap-2 mb-2 opacity-90">
+      <div className="flex items-center gap-1.5 mb-1 sm:mb-2 opacity-90">
         {icon}
-        <span className="text-sm font-medium">{label}</span>
+        <span className="text-xs sm:text-sm font-medium truncate">{label}</span>
       </div>
-      <p className="text-xl font-bold">{formatCurrency(value)}</p>
+      <p className="text-sm sm:text-xl font-bold truncate">{formatCurrency(value)}</p>
     </div>
   );
 }
