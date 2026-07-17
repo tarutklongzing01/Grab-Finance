@@ -1,10 +1,18 @@
 import { useState, useEffect } from "react";
 import { useWallet } from "../context/WalletContext";
-import { formatCurrency, WALLET_FIELDS } from "../utils/constants";
-import { Wallet, DollarSign, CreditCard, Building2, Save } from "lucide-react";
+import { formatCurrency, formatDate, formatTime, WALLET_FIELDS } from "../utils/constants";
+import {
+  Wallet,
+  DollarSign,
+  CreditCard,
+  Building2,
+  Save,
+  ArrowRightLeft,
+  Trash2,
+} from "lucide-react";
 
 export default function WalletPage() {
-  const { wallets, updateWallet } = useWallet();
+  const { wallets, updateWallet, transfers, deleteTransfer } = useWallet();
   const [editValues, setEditValues] = useState({
     cashWallet: 0,
     grabCredit: 0,
@@ -106,6 +114,48 @@ export default function WalletPage() {
         <Save size={20} />
         {saving ? "กำลังบันทึก..." : saved ? "บันทึกแล้ว!" : "บันทึกยอดเงิน"}
       </button>
+
+      {/* Transfer History */}
+      {transfers.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm">
+          <h2 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <ArrowRightLeft size={18} className="text-blue-500" />
+            ประวัติโอนเงินข้ามกระเป๋า
+          </h2>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {transfers.map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl"
+              >
+                <div className="flex items-center gap-2">
+                  <ArrowRightLeft size={14} className="text-blue-400" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {WALLET_FIELDS[t.from]?.label} → {WALLET_FIELDS[t.to]?.label}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {formatDate(t.createdAt)} {formatTime(t.createdAt)}
+                      {t.note && ` • ${t.note}`}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-blue-500">
+                    {formatCurrency(t.amount)}
+                  </span>
+                  <button
+                    onClick={() => deleteTransfer(t.id)}
+                    className="p-1 text-gray-400 hover:text-red-500 rounded"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

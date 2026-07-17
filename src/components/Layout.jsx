@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useWallet } from "../context/WalletContext";
 import { formatCurrency } from "../utils/constants";
+import TransferModal from "./TransferModal";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -18,6 +19,7 @@ import {
   DollarSign,
   CreditCard,
   Shield,
+  ArrowRightLeft,
 } from "lucide-react";
 
 const navItems = [
@@ -34,15 +36,20 @@ const adminItems = [
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
   const { currentUser, isAdmin, logout } = useAuth();
   const { dark, toggle } = useTheme();
-  const { wallets } = useWallet();
+  const { wallets, transferWallet } = useWallet();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = async () => {
     await logout();
     navigate("/login");
+  };
+
+  const handleTransfer = async (from, to, amount, note) => {
+    await transferWallet(from, to, amount, note);
   };
 
   return (
@@ -65,17 +72,25 @@ export default function Layout({ children }) {
           </button>
         </div>
         {/* Wallet bar mobile */}
-        <div className="flex justify-around px-4 py-2 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 text-xs">
-          <div className="flex items-center gap-1">
-            <DollarSign size={14} className="text-yellow-400" />
-            <span className="text-gray-500 dark:text-gray-400">สด:</span>
-            <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(wallets.cashWallet)}</span>
+        <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 text-xs">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <DollarSign size={14} className="text-yellow-400" />
+              <span className="text-gray-500 dark:text-gray-400">สด:</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(wallets.cashWallet)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <CreditCard size={14} className="text-green-400" />
+              <span className="text-gray-500 dark:text-gray-400">เครดิต:</span>
+              <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(wallets.grabCredit)}</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <CreditCard size={14} className="text-green-400" />
-            <span className="text-gray-500 dark:text-gray-400">เครดิต:</span>
-            <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(wallets.grabCredit)}</span>
-          </div>
+          <button
+            onClick={() => setShowTransfer(true)}
+            className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-500"
+          >
+            <ArrowRightLeft size={14} />
+          </button>
         </div>
       </header>
 
@@ -148,6 +163,16 @@ export default function Layout({ children }) {
 
           <div className="p-3 border-t border-gray-200 dark:border-gray-700 space-y-1">
             <button
+              onClick={() => {
+                setSidebarOpen(false);
+                setShowTransfer(true);
+              }}
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+            >
+              <ArrowRightLeft size={18} />
+              โอนเงินข้ามกระเป๋า
+            </button>
+            <button
               onClick={toggle}
               className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
@@ -180,10 +205,25 @@ export default function Layout({ children }) {
               <span className="text-gray-500 dark:text-gray-400">เครดิต Grab:</span>
               <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(wallets.grabCredit)}</span>
             </div>
+            <div className="w-px h-4 bg-gray-300 dark:bg-gray-600" />
+            <button
+              onClick={() => setShowTransfer(true)}
+              className="flex items-center gap-1 text-blue-500 hover:text-blue-600 font-medium"
+            >
+              <ArrowRightLeft size={14} />
+              โอน
+            </button>
           </div>
         </div>
         <div className="p-4 lg:p-6">{children}</div>
       </main>
+
+      {showTransfer && (
+        <TransferModal
+          onClose={() => setShowTransfer(false)}
+          onSubmit={handleTransfer}
+        />
+      )}
     </div>
   );
 }

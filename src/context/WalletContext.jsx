@@ -48,6 +48,7 @@ export function WalletProvider({ children }) {
   });
   const [incomes, setIncomes] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [transfers, setTransfers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const uid = currentUser?.uid;
@@ -92,12 +93,23 @@ export function WalletProvider({ children }) {
       );
     });
 
+    const transfersQuery = query(
+      collection(db, "users", uid, "transfers"),
+      orderBy("createdAt", "desc")
+    );
+    const unsubTransfers = onSnapshot(transfersQuery, (snap) => {
+      setTransfers(
+        snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      );
+    });
+
     setLoading(false);
 
     return () => {
       unsubWallet();
       unsubIncomes();
       unsubExpenses();
+      unsubTransfers();
     };
   }, [uid]);
 
@@ -154,6 +166,30 @@ export function WalletProvider({ children }) {
     [uid, updateWallet]
   );
 
+  const transferWallet = useCallback(
+    async (fromField, toField, amount, note) => {
+      if (!uid) return;
+      const numAmount = Number(amount);
+      if (numAmount <= 0) return;
+
+      await addDoc(collection(db, "users", uid, "transfers"), {
+        from: fromField,
+        to: toField,
+        amount: numAmount,
+        note: note || "",
+        createdAt: serverTimestamp(),
+      });
+
+      const snap = await getDoc(doc(db, "users", uid));
+      const w = snap.data()?.wallets || {};
+      await updateWallet({
+        [fromField]: (w[fromField] || 0) - numAmount,
+        [toField]: (w[toField] || 0) + numAmount,
+      });
+    },
+    [uid, updateWallet]
+  );
+
   const deleteIncome = useCallback(
     async (id) => {
       if (!uid) return;
@@ -168,6 +204,24 @@ export function WalletProvider({ children }) {
       await deleteDoc(doc(db, "users", uid, "expenses", id));
     },
     [uid]
+  );
+
+  const deleteTransfer = useCallback(
+    async (id) => {
+      if (!uid) return;
+      const snap = await getDoc(doc(db, "users", uid, "transfers", id));
+      if (snap.exists()) {
+        const t = snap.data();
+        const walletSnap = await getDoc(doc(db, "users", uid));
+        const w = walletSnap.data()?.wallets || {};
+        await updateWallet({
+          [t.from]: (w[t.from] || 0) + t.amount,
+          [t.to]: (w[t.to] || 0) - t.amount,
+        });
+      }
+      await deleteDoc(doc(db, "users", uid, "transfers", id));
+    },
+    [uid, updateWallet]
   );
 
   const getFilteredData = useCallback(
@@ -234,12 +288,15 @@ export function WalletProvider({ children }) {
     wallets,
     incomes,
     expenses,
+    transfers,
     loading,
     updateWallet,
     addIncome,
     addExpense,
+    transferWallet,
     deleteIncome,
     deleteExpense,
+    deleteTransfer,
     getTodayData,
     getWeekData,
     getMonthData,
