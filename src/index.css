@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-grab-green: #00b14f;
+  --color-grab-green-dark: #009a43;
+  --color-grab-dark: #1a1a2e;
+  --color-grab-darker: #16213e;
+  --color-grab-card: #1e2a47;
+  --color-grab-accent: #0f3460;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
