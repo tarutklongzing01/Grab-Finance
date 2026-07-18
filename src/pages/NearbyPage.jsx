@@ -202,8 +202,8 @@ export default function NearbyPage() {
     try {
       const res = await fetch("/api/overpass", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `data=${encodeURIComponent(fullQuery)}`,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: fullQuery }),
       });
       const data = await res.json();
       processResults(data);
@@ -234,8 +234,8 @@ export default function NearbyPage() {
     try {
       const res = await fetch("/api/overpass", {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `data=${encodeURIComponent(fullQuery)}`,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: fullQuery }),
       });
       const data = await res.json();
       processResults(data);
