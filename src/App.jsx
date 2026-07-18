@@ -11,6 +11,7 @@ import ReportsPage from "./pages/ReportsPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import AdminPage from "./pages/AdminPage";
+import MapPage from "./pages/MapPage";
 
 function ProtectedRoute({ children }) {
   const { currentUser, loading } = useAuth();
@@ -103,6 +104,18 @@ function AppRoutes() {
             <WalletProvider>
               <Layout>
                 <ReportsPage />
+              </Layout>
+            </WalletProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/map"
+        element={
+          <ProtectedRoute>
+            <WalletProvider>
+              <Layout>
+                <MapPage />
               </Layout>
             </WalletProvider>
           </ProtectedRoute>

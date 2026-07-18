@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { X, MapPin, Loader } from "lucide-react";
 import { INCOME_TYPES, EXPENSE_TYPES, INCOME_WALLET_MAP, EXPENSE_WALLET_MAP } from "../utils/constants";
 
 export default function TransactionModal({ type, onClose, onSubmit }) {
@@ -12,6 +12,26 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
     amount: "",
     note: "",
   });
+  const [location, setLocation] = useState(null);
+  const [locating, setLocating] = useState(false);
+
+  const captureLocation = () => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+        setLocating(false);
+      },
+      () => {
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -20,13 +40,14 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
       ...formData,
       amount: Number(formData.amount),
       walletField: walletMap[formData.type],
+      location,
     });
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-xl">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className={`text-lg font-bold ${isIncome ? "text-green-500" : "text-red-500"}`}>
             {isIncome ? "เพิ่มรายรับ" : "เพิ่มรายจ่าย"}
@@ -94,6 +115,48 @@ export default function TransactionModal({ type, onClose, onSubmit }) {
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-grab-green"
             />
           </div>
+
+          {isIncome && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                ตำแหน่ง (GPS)
+              </label>
+              {location ? (
+                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-xl text-green-600 text-sm">
+                  <MapPin size={16} />
+                  <span>
+                    {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setLocation(null)}
+                    className="ml-auto text-red-400 hover:text-red-600 text-xs"
+                  >
+                    ลบ
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={captureLocation}
+                  disabled={locating}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-500 hover:border-green-400 hover:text-green-500 transition-colors"
+                >
+                  {locating ? (
+                    <>
+                      <Loader size={16} className="animate-spin" />
+                      กำลังหาตำแหน่ง...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin size={16} />
+                      ปักหมุดตำแหน่งปัจจุบัน
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
 
           <button
             type="submit"

@@ -20,6 +20,7 @@ import {
   CreditCard,
   Shield,
   ArrowRightLeft,
+  MapPin,
 } from "lucide-react";
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { path: "/income", label: "รายรับ", icon: TrendingUp },
   { path: "/expense", label: "รายจ่าย", icon: TrendingDown },
   { path: "/wallets", label: "กระเป๋าเงิน", icon: Wallet },
+  { path: "/map", label: "แผนที่", icon: MapPin },
   { path: "/reports", label: "รายงาน", icon: FileBarChart },
 ];
 
