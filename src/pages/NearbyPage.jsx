@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -14,6 +14,8 @@ import {
   Loader,
   Crosshair,
   RefreshCw,
+  LocateFixed,
+  ExternalLink,
 } from "lucide-react";
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -38,7 +40,7 @@ const CATEGORIES = [
     icon: Coffee,
     color: "#ef4444",
     overpass:
-      '(node["amenity"="restaurant"](around:{radius},{lat},{lng});node["amenity"="fast_food"](around:{radius},{lat},{lng});node["amenity"="food_court"](around:{radius},{lat},{lng});)',
+      '(node["amenity"="restaurant"](around:{radius},{lat},{lng});node["amenity"="fast_food"](around:{radius},{lat},{lng});)',
   },
   {
     key: "convenience",
@@ -46,7 +48,7 @@ const CATEGORIES = [
     icon: Store,
     color: "#22c55e",
     overpass:
-      '(node["shop"="convenience"](around:{radius},{lat},{lng});node["name"~"7-?Eleven|7-Eleven|FamilyMart|Lawson|Mini Big C|CJ More|Lotus",i](around:{radius},{lat},{lng});)',
+      '(node["shop"="convenience"](around:{radius},{lat},{lng});node["name"~"7-?Eleven|FamilyMart|Lawson|Mini Big C|CJ More|Lotus",i](around:{radius},{lat},{lng});)',
   },
   {
     key: "coffee",
@@ -54,7 +56,7 @@ const CATEGORIES = [
     icon: Coffee,
     color: "#8b5cf6",
     overpass:
-      '(node["amenity"="cafe"](around:{radius},{lat},{lng});node["name"~"Starbucks|Amazon|Oishi|Cafe",i](around:{radius},{lat},{lng});)',
+      '(node["amenity"="cafe"](around:{radius},{lat},{lng});)',
   },
   {
     key: "parking",
@@ -82,7 +84,7 @@ const CATEGORIES = [
   },
   {
     key: "hospital",
-    label: "โรงพยาบาล / คลินิก",
+    label: "โรงพยาบาล",
     icon: Building,
     color: "#ef4444",
     overpass:
@@ -96,6 +98,17 @@ const RADII = [
   { value: 2000, label: "2 กม." },
   { value: 5000, label: "5 กม." },
 ];
+
+const CATEGORY_EMOJI = {
+  fuel: "⛽",
+  food: "🍜",
+  convenience: "🏪",
+  coffee: "☕",
+  parking: "🅿️",
+  bank: "🏧",
+  toilet: "🚻",
+  hospital: "🏥",
+};
 
 function createIcon(emoji, color) {
   return L.divIcon({
@@ -112,16 +125,22 @@ function createIcon(emoji, color) {
   });
 }
 
-const CATEGORY_EMOJI = {
-  fuel: "⛽",
-  food: "🍜",
-  convenience: "🏪",
-  coffee: "☕",
-  parking: "🅿️",
-  bank: "🏧",
-  toilet: "🚻",
-  hospital: "🏥",
-};
+function calcDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDist(m) {
+  if (m < 1000) return `${Math.round(m)} ม.`;
+  return `${(m / 1000).toFixed(1)} กม.`;
+}
 
 export default function NearbyPage() {
   const [location, setLocation] = useState(null);
@@ -131,6 +150,8 @@ export default function NearbyPage() {
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isNameSearch, setIsNameSearch] = useState(false);
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -159,7 +180,7 @@ export default function NearbyPage() {
     getCurrentLocation();
   }, []);
 
-  const searchNearby = async () => {
+  const searchNearbyByCategory = async () => {
     if (!location) return;
     setLoading(true);
     setError("");
@@ -174,8 +195,37 @@ export default function NearbyPage() {
 
     const fullQuery = `
       [out:json][timeout:15];
+      ( ${query} );
+      out center;
+    `;
+
+    try {
+      const res = await fetch("https://overpass-api.de/api/interpreter", {
+        method: "POST",
+        body: `data=${encodeURIComponent(fullQuery)}`,
+      });
+      const data = await res.json();
+      processResults(data);
+    } catch (err) {
+      setError("เกิดข้อผิดพลาดในการค้นหา ลองใหม่อีกครั้ง");
+    }
+    setLoading(false);
+  };
+
+  const searchByName = async () => {
+    if (!location || !searchQuery.trim()) return;
+    setLoading(true);
+    setError("");
+    setIsNameSearch(true);
+
+    const q = searchQuery.trim();
+    const fullQuery = `
+      [out:json][timeout:15];
       (
-        ${query}
+        node["name"~"${q}",i](around:${radius},${location.lat},${location.lng});
+        node["name:th"~"${q}",i](around:${radius},${location.lat},${location.lng});
+        node["brand"~"${q}",i](around:${radius},${location.lat},${location.lng});
+        way["name"~"${q}",i](around:${radius},${location.lat},${location.lng});
       );
       out center;
     `;
@@ -186,54 +236,56 @@ export default function NearbyPage() {
         body: `data=${encodeURIComponent(fullQuery)}`,
       });
       const data = await res.json();
-
-      const results = data.elements
-        .filter((el) => el.lat && el.lon)
-        .map((el) => ({
-          id: el.id,
-          name: el.tags?.name || el.tags?.["name:th"] || "ไม่ทราบชื่อ",
-          lat: el.lat,
-          lng: el.lon,
-          type: el.tags?.amenity || el.tags?.shop || "",
-          brand: el.tags?.brand || "",
-          opening_hours: el.tags?.opening_hours || "",
-          phone: el.tags?.phone || "",
-          distance: calcDistance(
-            location.lat,
-            location.lng,
-            el.lat,
-            el.lon
-          ),
-          tags: el.tags,
-        }))
-        .sort((a, b) => a.distance - b.distance);
-
-      setPlaces(results);
+      processResults(data);
+      if (data.elements.length === 0) {
+        setError(`ไม่พบ "${q}" ในรัศมี ${formatDist(radius)}`);
+      }
     } catch (err) {
       setError("เกิดข้อผิดพลาดในการค้นหา ลองใหม่อีกครั้ง");
     }
     setLoading(false);
   };
 
+  const processResults = (data) => {
+    const results = data.elements
+      .filter((el) => el.lat && el.lon)
+      .map((el) => ({
+        id: el.id,
+        name: el.tags?.name || el.tags?.["name:th"] || el.tags?.brand || "ไม่ทราบชื่อ",
+        lat: el.lat,
+        lng: el.lon,
+        type: el.tags?.amenity || el.tags?.shop || "",
+        brand: el.tags?.brand || "",
+        opening_hours: el.tags?.opening_hours || "",
+        phone: el.tags?.phone || "",
+        distance: calcDistance(
+          location.lat,
+          location.lng,
+          el.lat,
+          el.lon
+        ),
+        tags: el.tags,
+      }))
+      .sort((a, b) => a.distance - b.distance);
+
+    setPlaces(results);
+  };
+
   useEffect(() => {
-    if (location) searchNearby();
+    if (location && !isNameSearch) searchNearbyByCategory();
   }, [location, selectedCategory, radius]);
 
-  function calcDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      searchByName();
+    }
+  };
 
-  const formatDist = (m) => {
-    if (m < 1000) return `${Math.round(m)} ม.`;
-    return `${(m / 1000).toFixed(1)} กม.`;
+  const clearSearch = () => {
+    setSearchQuery("");
+    setIsNameSearch(false);
+    if (location) searchNearbyByCategory();
   };
 
   return (
@@ -260,14 +312,51 @@ export default function NearbyPage() {
       )}
 
       {error && (
-        <p className="text-red-500 text-sm text-center">{error}</p>
+        <div className="flex items-center justify-between bg-red-50 dark:bg-red-900/20 text-red-600 text-sm p-3 rounded-xl">
+          <span>{error}</span>
+          <button onClick={() => setError("")} className="text-red-400 hover:text-red-600">
+            ✕
+          </button>
+        </div>
       )}
 
-      {/* Categories */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        {CATEGORIES.map((cat) => {
-          const Icon = cat.icon;
-          return (
+      {/* Name Search Bar */}
+      <form onSubmit={handleSearchSubmit} className="relative">
+        <Search
+          size={18}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+        />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="พิมพ์ชื่อร้าน เช่น 7-Eleven, ปตท, Starbucks..."
+          className="w-full pl-10 pr-20 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-grab-green text-sm"
+        />
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="px-2 py-1.5 text-xs text-gray-400 hover:text-red-500"
+            >
+              ✕
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={!searchQuery.trim() || !location}
+            className="px-3 py-1.5 bg-grab-green text-white rounded-lg text-xs font-medium disabled:opacity-40"
+          >
+            ค้นหา
+          </button>
+        </div>
+      </form>
+
+      {/* Categories - hidden when name search is active */}
+      {!isNameSearch && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {CATEGORIES.map((cat) => (
             <button
               key={cat.key}
               onClick={() => setSelectedCategory(cat.key)}
@@ -285,9 +374,9 @@ export default function NearbyPage() {
               {CATEGORY_EMOJI[cat.key]}
               {cat.label}
             </button>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Radius */}
       <div className="flex gap-2">
@@ -308,7 +397,10 @@ export default function NearbyPage() {
 
       {/* Refresh */}
       <button
-        onClick={searchNearby}
+        onClick={() => {
+          if (isNameSearch) searchByName();
+          else searchNearbyByCategory();
+        }}
         disabled={!location || loading}
         className="w-full flex items-center justify-center gap-2 py-2 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40"
       >
@@ -357,7 +449,7 @@ export default function NearbyPage() {
                 key={place.id}
                 position={[place.lat, place.lng]}
                 icon={createIcon(
-                  CATEGORY_EMOJI[selectedCategory],
+                  CATEGORY_EMOJI[place.type] || "📍",
                   CATEGORIES.find((c) => c.key === selectedCategory)?.color || "#666"
                 )}
               >
@@ -375,6 +467,15 @@ export default function NearbyPage() {
                         🕐 {place.opening_hours}
                       </p>
                     )}
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-medium"
+                    >
+                      <LocateFixed size={12} />
+                      นำทาง
+                    </a>
                   </div>
                 </Popup>
               </Marker>
@@ -383,56 +484,76 @@ export default function NearbyPage() {
         </div>
       )}
 
+      {/* Search indicator */}
+      {isNameSearch && (
+        <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3">
+          <p className="text-sm text-blue-600">
+            🔍 ค้นหา "<span className="font-bold">{searchQuery}</span>"
+          </p>
+          <button
+            onClick={clearSearch}
+            className="text-xs text-blue-400 hover:text-blue-600 underline"
+          >
+            ล้างการค้นหา
+          </button>
+        </div>
+      )}
+
       {/* Results List */}
       <div className="space-y-2">
         <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-          พบ {places.length} แห่ง
+          {isNameSearch ? `พบ ${places.length} แห่ง` : `ร้าน${CATEGORIES.find((c) => c.key === selectedCategory)?.label} ${places.length} แห่ง`}
         </p>
         {places.map((place) => (
           <div
             key={place.id}
-            className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm flex items-center gap-3"
+            className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm"
           >
-            <div
-              className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
-              style={{
-                background: `${CATEGORIES.find((c) => c.key === selectedCategory)?.color}20`,
-              }}
-            >
-              {CATEGORY_EMOJI[selectedCategory]}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                {place.name}
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                {place.brand && `${place.brand} • `}
-                {place.tags?.["addr:street"] && `${place.tags["addr:street"]} `}
-                {place.tags?.["addr:subdistrict"] || place.tags?.["addr:city"] || ""}
-              </p>
-              {place.opening_hours && (
-                <p className="text-[10px] text-gray-400">🕐 {place.opening_hours}</p>
-              )}
-            </div>
-            <div className="text-right shrink-0">
-              <p className="text-sm font-bold text-grab-green">
-                {formatDist(place.distance)}
-              </p>
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[10px] text-blue-500 hover:underline"
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0"
+                style={{
+                  background: `${CATEGORIES.find((c) => c.key === selectedCategory)?.color || "#666"}20`,
+                }}
               >
-                นำทาง
-              </a>
+                {CATEGORY_EMOJI[place.type] || "📍"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                  {place.name}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  {place.brand && `${place.brand} • `}
+                  {place.tags?.["addr:street"] && `${place.tags["addr:street"]} `}
+                  {place.tags?.["addr:subdistrict"] || place.tags?.["addr:city"] || ""}
+                </p>
+                {place.opening_hours && (
+                  <p className="text-[10px] text-gray-400">🕐 {place.opening_hours}</p>
+                )}
+              </div>
+              <div className="text-right shrink-0 space-y-1">
+                <p className="text-sm font-bold text-grab-green">
+                  {formatDist(place.distance)}
+                </p>
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-grab-green text-white rounded-md text-[10px] font-medium"
+                >
+                  <LocateFixed size={10} />
+                  นำทาง
+                </a>
+              </div>
             </div>
           </div>
         ))}
 
         {!loading && location && places.length === 0 && (
           <p className="text-center text-gray-400 py-6 text-sm">
-            ไม่พบ{CATEGORIES.find((c) => c.key === selectedCategory)?.label}ในรัศมีนี้
+            {isNameSearch
+              ? `ไม่พบ "${searchQuery}" ในรัศมีนี้`
+              : `ไม่พบ${CATEGORIES.find((c) => c.key === selectedCategory)?.label}ในรัศมีนี้`}
           </p>
         )}
       </div>
