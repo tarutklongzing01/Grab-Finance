@@ -12,6 +12,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import AdminPage from "./pages/AdminPage";
 import MapPage from "./pages/MapPage";
+import NearbyPage from "./pages/NearbyPage";
 
 function ProtectedRoute({ children }) {
   const { currentUser, loading } = useAuth();
@@ -116,6 +117,18 @@ function AppRoutes() {
             <WalletProvider>
               <Layout>
                 <MapPage />
+              </Layout>
+            </WalletProvider>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/nearby"
+        element={
+          <ProtectedRoute>
+            <WalletProvider>
+              <Layout>
+                <NearbyPage />
               </Layout>
             </WalletProvider>
           </ProtectedRoute>

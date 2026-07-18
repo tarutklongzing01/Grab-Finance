@@ -21,6 +21,7 @@ import {
   Shield,
   ArrowRightLeft,
   MapPin,
+  Navigation,
 } from "lucide-react";
 
 const navItems = [
@@ -29,6 +30,7 @@ const navItems = [
   { path: "/expense", label: "รายจ่าย", icon: TrendingDown },
   { path: "/wallets", label: "กระเป๋าเงิน", icon: Wallet },
   { path: "/map", label: "แผนที่", icon: MapPin },
+  { path: "/nearby", label: "หาร้านค้า", icon: Navigation },
   { path: "/reports", label: "รายงาน", icon: FileBarChart },
 ];
 
