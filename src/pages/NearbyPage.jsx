@@ -200,8 +200,9 @@ export default function NearbyPage() {
     `;
 
     try {
-      const res = await fetch("https://overpass-api.de/api/interpreter", {
+      const res = await fetch("/api/overpass", {
         method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: `data=${encodeURIComponent(fullQuery)}`,
       });
       const data = await res.json();
@@ -231,8 +232,9 @@ export default function NearbyPage() {
     `;
 
     try {
-      const res = await fetch("https://overpass-api.de/api/interpreter", {
+      const res = await fetch("/api/overpass", {
         method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: `data=${encodeURIComponent(fullQuery)}`,
       });
       const data = await res.json();
