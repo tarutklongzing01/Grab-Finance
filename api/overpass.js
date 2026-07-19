@@ -12,9 +12,9 @@ export default async function handler(req, res) {
   }
 
   const OVERPASS_ENDPOINTS = [
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
-    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
   ];
 
   try {
@@ -23,20 +23,25 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing query" });
     }
 
+    const encoded = encodeURIComponent(query);
     let lastError;
+
     for (const endpoint of OVERPASS_ENDPOINTS) {
       try {
-        const overpassRes = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Accept": "application/json",
-          },
-          body: `data=${encodeURIComponent(query)}`,
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 20000);
+
+        const url = `${endpoint}?data=${encoded}`;
+        const overpassRes = await fetch(url, {
+          method: "GET",
+          headers: { "Accept": "application/json" },
+          signal: controller.signal,
         });
 
+        clearTimeout(timeout);
+
         if (!overpassRes.ok) {
-          lastError = new Error(`Overpass responded ${overpassRes.status}`);
+          lastError = new Error(`${endpoint} responded ${overpassRes.status}`);
           continue;
         }
 
